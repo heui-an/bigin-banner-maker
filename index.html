@@ -238,6 +238,12 @@
     cursor: pointer;
   }
   .chips button:hover { border-color: var(--line); color: var(--ink); }
+  .chips button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
 
   .seg { display: flex; gap: 5px; }
   .seg button {
@@ -400,15 +406,17 @@
 
       <fieldset>
         <legend>배지 <span class="opt">· 선택</span></legend>
-        <div class="row">
-          <span class="lbl">왼쪽 위</span>
-          <div class="seg" role="group" aria-label="왼쪽 위 배지 종류">
-            <button type="button" data-top="none" aria-pressed="true">없음</button>
-            <button type="button" data-top="A" aria-pressed="false"><span class="glyph ribbon"></span>리본</button>
-            <button type="button" data-top="B" aria-pressed="false"><span class="glyph circle"></span>원형</button>
+        <div class="row" style="margin-top:0">
+          <div class="switch">
+            <span class="lbl" id="lbl-top">왼쪽 위 배지</span>
+            <button type="button" class="track" id="f-top-on" aria-pressed="true" aria-labelledby="lbl-top"></button>
           </div>
         </div>
-        <div class="row" id="top-text-row" hidden>
+        <div class="row" id="top-body">
+          <div class="seg" role="group" aria-label="왼쪽 위 배지 종류">
+            <button type="button" data-top="A" aria-pressed="true"><span class="glyph ribbon"></span>리본</button>
+            <button type="button" data-top="B" aria-pressed="false"><span class="glyph circle"></span>원형</button>
+          </div>
           <label for="f-top">배지 문구</label>
           <input type="text" id="f-top" placeholder="최저가">
           <p class="hint" id="top-hint"></p>
@@ -486,7 +494,7 @@
   var CONT_W = 640, GAP = 24, IMG = 500, IMG_R = 24;
   var TITLE = { size: 52, ls: -2.08, lh: 68, font: "Gmarket Sans" };
   var NAME  = { size: 48, ls: -1.92, lh: 52, font: "Pretendard" };
-  var PRICE = { size: 40, ls: -1.6, h: 72, pad: [32, 16, 16, 32] };
+  var PRICE = { size: 40, ls: -1.6, h: 72, pad: [32, 16, 16, 32], font: "Gmarket Sans" };
   var BADGE = { size: 44, ls: -1.76 };
   var RIBBON = { x: 64, y: 264, w: 90, padTop: 32, padBottom: 16, lh: 44, r: 8, tailH: 32 };
   var CIRCLE_B = { x: 56, y: 224, d: 160 };
@@ -496,15 +504,16 @@
   var TAIL = [[0, 0], [90, 0], [90, 32], [44.9648, 5.5], [0, 32]];
 
   var PRESETS = [
-    { tag: "템플릿 원문", text: "실시간 주문이\n급증한 상품이에요!" },
     { tag: "🔥 급증", text: "실시간 주문이\n🔥급증한 상품이에요!" },
     { tag: "😍 구독자", text: "😍구독자들은\n이 상품도 구매했어요" },
-    { tag: "📈 실시간", text: "지금 실시간으로📈\n주문이 급증하고 있어요!" }
+    { tag: "📈 실시간", text: "지금 실시간으로📈\n주문이 급증하고 있어요!" },
+    { tag: "직접입력", text: null }
   ];
 
   var state = {
-    title: "실시간 주문이\n급증한 상품이에요!",
+    title: PRESETS[0].text,
     name: "어린이과학동아 1년 정기구독",
+    topOn: true,
     topType: "A",
     topText: "최저가",
     cOn: true,
@@ -624,7 +633,9 @@
       roundRect(c, ix, y, IMG, IMG, IMG_R);
       c.clip();
       var iw = state.img.naturalWidth, ih = state.img.naturalHeight;
-      var k = Math.max(IMG / iw, IMG / ih);
+      /* 비율 유지 + 안 잘리게: 짧은 쪽이 아니라 긴 쪽을 500에 맞춘다 (contain).
+         작은 이미지는 늘리고 큰 이미지는 줄인다. 남는 자리는 흰 배경이 보인다. */
+      var k = Math.min(IMG / iw, IMG / ih);
       var dw = iw * k, dh = ih * k;
       c.drawImage(state.img, ix + (IMG - dw) / 2, y + (IMG - dh) / 2, dw, dh);
       c.restore();
@@ -658,7 +669,7 @@
     c.fillText(state.p2, px0 + w1 + PRICE.pad[2] + m2 / 2, y + PRICE.h / 2);
 
     /* lebel_typeA — 리본 */
-    if (state.topType === "A") {
+    if (state.topOn && state.topType === "A") {
       var chars = Array.from(String(state.topText).replace(/\s/g, ""));
       if (chars.length) {
         var bh = RIBBON.padTop + chars.length * RIBBON.lh + RIBBON.padBottom;
@@ -685,7 +696,7 @@
     }
 
     /* lebel_typeB — 왼쪽 위 원형 */
-    if (state.topType === "B" && String(state.topText).trim()) {
+    if (state.topOn && state.topType === "B" && String(state.topText).trim()) {
       setFont(c, { size: BADGE.size, ls: BADGE.ls, font: "Gmarket Sans" });
       drawCircle(c, CIRCLE_B, t.badge, circleLines(c, state.topText));
     }
@@ -732,6 +743,7 @@
     el.addEventListener("input", function () { state[key] = el.value; render(); });
   }
   bindText("f-title", "title");
+  $("f-title").addEventListener("input", syncPresets);
   bindText("f-name", "name");
   bindText("f-top", "topText");
   bindText("f-c", "cText");
@@ -742,27 +754,48 @@
     var b = document.createElement("button");
     b.type = "button";
     b.textContent = p.tag;
-    b.title = p.text.replace("\n", " / ");
+    b.title = p.text ? p.text.replace("\n", " / ") : "타이틀을 비우고 직접 입력";
+    b.dataset.preset = p.tag;
     b.addEventListener("click", function () {
-      state.title = p.text;
-      $("f-title").value = p.text;
+      state.title = p.text || "";
+      $("f-title").value = state.title;
+      syncPresets();
       render();
+      if (!p.text) $("f-title").focus();
     });
     $("presets").appendChild(b);
   });
+
+  /* 지금 타이틀과 일치하는 프리셋을 선택 표시. 일치하는 게 없으면 '직접입력'. */
+  function syncPresets() {
+    var hit = null;
+    for (var i = 0; i < PRESETS.length; i++) {
+      if (PRESETS[i].text && PRESETS[i].text === state.title) { hit = PRESETS[i].tag; break; }
+    }
+    if (!hit) hit = "직접입력";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-preset]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.preset === hit));
+    });
+  }
 
   var TOP_HINT = {
     A: "한 글자씩 세로로 쌓입니다. 글자 수에 따라 리본 길이가 늘어납니다.",
     B: "원 안에 들어갑니다. 넘치면 두 줄로 나뉩니다."
   };
   function syncTop() {
+    $("f-top-on").setAttribute("aria-pressed", String(state.topOn));
+    $("top-body").hidden = !state.topOn;
     Array.prototype.forEach.call(document.querySelectorAll("[data-top]"), function (b) {
       b.setAttribute("aria-pressed", String(b.dataset.top === state.topType));
     });
-    $("top-text-row").hidden = state.topType === "none";
     $("top-hint").textContent = TOP_HINT[state.topType] || "";
     $("f-top").placeholder = state.topType === "B" ? "14%↓" : "최저가";
   }
+  $("f-top-on").addEventListener("click", function () {
+    state.topOn = !state.topOn;
+    syncTop();
+    render();
+  });
   Array.prototype.forEach.call(document.querySelectorAll("[data-top]"), function (b) {
     b.addEventListener("click", function () {
       state.topType = b.dataset.top;
@@ -921,6 +954,7 @@
   });
 
   /* ---------- 시작 ---------- */
+  syncPresets();
   syncTop();
   syncC();
   syncTheme();

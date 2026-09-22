@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  /* claude.ai 아티팩트가 자동으로 넣어주는 리셋. 단독 실행용으로 여기 둔다. */
+  :root { color-scheme: light dark; }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>빅인 배너 생성기</title>
+<style>
+  @font-face {
+    font-family: "Gmarket Sans";
+    src: url("fonts/GmarketSansBold.woff") format("woff");
+    font-weight: 700;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Pretendard";
+    src: url("fonts/Pretendard-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Pretendard";
+    src: url("fonts/Pretendard-SemiBold.woff2") format("woff2");
+    font-weight: 600;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Pretendard";
+    src: url("fonts/Pretendard-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-display: block;
+  }
+
+  :root {
+    --ground: #eff0f5;
+    --surface: #ffffff;
+    --sunken: #e6e8f0;
+    --line: #dcdfe9;
+    --line-soft: #e9ebf2;
+    --ink: #171a22;
+    --ink-dim: #666d7e;
+    --ink-faint: #949bab;
+    --accent: #2b4ed9;
+    --accent-ink: #ffffff;
+    --accent-soft: #e5e9fb;
+    --danger: #d4342b;
+    --ui: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --display: "Gmarket Sans", "Pretendard", -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101218;
+      --surface: #191c24;
+      --sunken: #0c0e13;
+      --line: #2a2e3a;
+      --line-soft: #23262f;
+      --ink: #e9ebf2;
+      --ink-dim: #969db0;
+      --ink-faint: #6b7283;
+      --accent: #6d86f0;
+      --accent-ink: #0d1020;
+      --accent-soft: #1e2440;
+      --danger: #f07a72;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #101218;
+    --surface: #191c24;
+    --sunken: #0c0e13;
+    --line: #2a2e3a;
+    --line-soft: #23262f;
+    --ink: #e9ebf2;
+    --ink-dim: #969db0;
+    --ink-faint: #6b7283;
+    --accent: #6d86f0;
+    --accent-ink: #0d1020;
+    --accent-soft: #1e2440;
+    --danger: #f07a72;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 28px 56px;
+  }
+
+  /* ---------- header ---------- */
+  header { margin-bottom: 24px; }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: -0.8px;
+    margin: 0 0 6px;
+  }
+  .sub { color: var(--ink-dim); margin: 0; font-size: 13.5px; }
+  .sub code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    background: var(--sunken);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ---------- layout ---------- */
+  .studio {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 372px;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .studio { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .stage-col { order: -1; }
+  }
+
+  /* ---------- stage ---------- */
+  .stage-col { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); }
+  @media (max-width: 900px) { .stage-col { position: static; } }
+  .stage {
+    background: var(--sunken);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  #canvas {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+    aspect-ratio: 720 / 960;
+    border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(10, 12, 20, 0.16);
+    cursor: copy;
+  }
+  .stage.dragging #canvas { outline: 3px dashed var(--accent); outline-offset: 5px; }
+  .stage-foot {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sizes { display: flex; gap: 6px; }
+  .sizes button {
+    flex: 1;
+    font: inherit;
+    font-weight: 600;
+    color: var(--ink-dim);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 0;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .sizes button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .px {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  #save {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.4px;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 0;
+    border-radius: 10px;
+    padding: 13px 0;
+    cursor: pointer;
+    width: 100%;
+  }
+  #save:hover { filter: brightness(1.07); }
+  #save:disabled { opacity: 0.45; cursor: not-allowed; }
+  #note { text-align: center; font-size: 12.5px; min-height: 1.4em; color: var(--ink-dim); }
+  #note.err { color: var(--danger); }
+
+  /* ---------- panel ---------- */
+  .panel { display: flex; flex-direction: column; gap: 14px; }
+  fieldset {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 15px;
+    margin: 0;
+    min-width: 0;
+  }
+  legend {
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-dim);
+    padding: 0 6px;
+    margin-left: -6px;
+  }
+  legend .opt { color: var(--ink-faint); font-weight: 400; letter-spacing: 0; }
+  .row { display: flex; flex-direction: column; gap: 6px; }
+  .row + .row { margin-top: 13px; }
+  .row > label, .lbl {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-dim);
+  }
+  .hint { font-size: 11.5px; color: var(--ink-faint); line-height: 1.45; }
+  .hint code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--sunken);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+  input[type="text"], textarea {
+    font: inherit;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 11px;
+    width: 100%;
+    resize: vertical;
+  }
+  textarea { min-height: 62px; line-height: 1.45; }
+  input[type="text"]::placeholder, textarea::placeholder { color: var(--ink-faint); }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); outline: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chips button {
+    font: inherit;
+    font-size: 12px;
+    color: var(--ink-dim);
+    background: var(--sunken);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  .chips button:hover { border-color: var(--line); color: var(--ink); }
+
+  .seg { display: flex; gap: 5px; }
+  .seg button {
+    flex: 1;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .seg button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .glyph { width: 11px; height: 13px; background: currentColor; flex: none; }
+  .glyph.ribbon { clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%); }
+  .glyph.circle { border-radius: 50%; height: 11px; }
+
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .switch .lbl { font-size: 13.5px; color: var(--ink); }
+  .track {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    flex: none;
+    border-radius: 999px;
+    background: var(--sunken);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ink-faint);
+    transition: transform 0.15s, background 0.15s;
+  }
+  .track[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+  .track[aria-pressed="true"]::after { transform: translateX(18px); background: #fff; }
+  @media (prefers-reduced-motion: reduce) {
+    .track, .track::after { transition: none; }
+  }
+
+  .pricegrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .drop {
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    background: var(--sunken);
+    padding: 18px 12px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--ink-dim);
+    font-size: 12.5px;
+  }
+  .drop:hover { border-color: var(--accent); color: var(--ink); }
+  .drop strong { display: block; font-weight: 600; font-size: 13px; color: var(--ink); margin-bottom: 3px; }
+  .thumbrow { display: flex; align-items: center; gap: 10px; }
+  .thumbrow img {
+    width: 52px; height: 52px; flex: none;
+    object-fit: cover; border-radius: 7px;
+    border: 1px solid var(--line); background: #fff;
+  }
+  .thumbrow .meta { min-width: 0; flex: 1; font-size: 12px; color: var(--ink-dim); }
+  .thumbrow .meta b {
+    display: block; color: var(--ink); font-weight: 600; font-size: 12.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .linkbtn {
+    font: inherit; font-size: 12px; font-weight: 600;
+    color: var(--danger); background: none; border: 0;
+    cursor: pointer; padding: 4px; flex: none;
+  }
+  input[type="file"] { display: none; }
+
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .swatch {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 9px;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+  .swatch i {
+    width: 34%;
+    height: 34%;
+    border-radius: 50%;
+    display: block;
+  }
+  .swatch[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+  }
+  .swkey {
+    margin-top: 9px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .swkey b { color: var(--ink-dim); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>빅인 배너 생성기</h1>
+    <p class="sub">피그마 템플릿 <code>빅인 템플릿</code>을 그대로 옮긴 720 × 960 배너. 입력하면 바로 그려지고 PNG로 저장됩니다.</p>
+  </header>
+
+  <div class="studio">
+    <div class="stage-col">
+      <div class="stage" id="stage">
+        <canvas id="canvas" width="720" height="960" aria-label="배너 미리보기"></canvas>
+        <div class="stage-foot">
+          <div class="sizes" role="group" aria-label="저장 배율">
+            <button type="button" id="sc1" data-scale="1" aria-pressed="false">1×</button>
+            <button type="button" id="sc2" data-scale="2" aria-pressed="true">2×</button>
+            <button type="button" id="sc3" data-scale="3" aria-pressed="false">3×</button>
+          </div>
+          <p class="px" id="px"></p>
+          <button type="button" id="save">PNG로 저장</button>
+          <p id="note"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <fieldset>
+        <legend>텍스트</legend>
+        <div class="row">
+          <label for="f-title">메인 타이틀</label>
+          <textarea id="f-title" rows="2" placeholder="실시간 주문이&#10;급증한 상품이에요!"></textarea>
+          <div class="chips" id="presets"></div>
+          <p class="hint">줄바꿈은 Enter. 640px를 넘으면 자동으로 줄이 나뉩니다.</p>
+        </div>
+        <div class="row">
+          <label for="f-name">상품명</label>
+          <input type="text" id="f-name" placeholder="상품명을 작성해 주세요">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>배지 <span class="opt">· 선택</span></legend>
+        <div class="row">
+          <span class="lbl">왼쪽 위</span>
+          <div class="seg" role="group" aria-label="왼쪽 위 배지 종류">
+            <button type="button" data-top="none" aria-pressed="true">없음</button>
+            <button type="button" data-top="A" aria-pressed="false"><span class="glyph ribbon"></span>리본</button>
+            <button type="button" data-top="B" aria-pressed="false"><span class="glyph circle"></span>원형</button>
+          </div>
+        </div>
+        <div class="row" id="top-text-row" hidden>
+          <label for="f-top">배지 문구</label>
+          <input type="text" id="f-top" placeholder="최저가">
+          <p class="hint" id="top-hint"></p>
+        </div>
+        <div class="row">
+          <div class="switch">
+            <span class="lbl" id="lbl-c">오른쪽 아래 원형 배지</span>
+            <button type="button" class="track" id="f-c-on" aria-pressed="false" aria-labelledby="lbl-c"></button>
+          </div>
+        </div>
+        <div class="row" id="c-text-row" hidden>
+          <label for="f-c">배지 문구</label>
+          <input type="text" id="f-c" placeholder="교과연계">
+          <p class="hint">원을 넘치면 자동으로 두 줄이 됩니다. 나눌 위치를 직접 정하려면 <code>교과/연계</code>처럼 <code>/</code>를 넣으세요.</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>가격</legend>
+        <div class="pricegrid">
+          <div class="row" style="margin-top:0">
+            <label for="f-p1">왼쪽 칩</label>
+            <input type="text" id="f-p1" placeholder="최저가">
+          </div>
+          <div class="row" style="margin-top:0">
+            <label for="f-p2">오른쪽 가격</label>
+            <input type="text" id="f-p2" placeholder="16,800원 ~">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>이미지 <span class="opt">· 선택</span></legend>
+        <div class="row" style="margin-top:0">
+          <div class="drop" id="pick">
+            <strong>클릭 · 드래그 · 붙여넣기</strong>
+            500 × 500 영역에 꽉 채워 들어갑니다
+          </div>
+          <div class="thumbrow" id="thumb" hidden>
+            <img id="thumb-img" alt="">
+            <span class="meta"><b id="thumb-name"></b><span id="thumb-size"></span></span>
+            <button type="button" class="linkbtn" id="thumb-x">제거</button>
+          </div>
+          <input type="file" id="f-img" accept="image/*">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>테마</legend>
+        <div class="swatches" id="swatches"></div>
+        <p class="swkey"><b id="sw-name"></b><span id="sw-hex"></span></p>
+      </fieldset>
+    </div>
+  </div>
+</div>
+
+<script>
+  "use strict";
+
+  /* ---------- 피그마 실측값: 빅인 템플릿 (854:4182) ---------- */
+  var THEMES = {
+    red:    { label: "레드",   bg: "#fd4516", badge: "#262626", p1bg: "#f9f33c", p1fg: "#fd4516", p2fg: "#fd4516" },
+    yellow: { label: "옐로우", bg: "#ffb414", badge: "#fd4516", p1bg: "#fd4516", p1fg: "#ffffff", p2fg: "#fd4516" },
+    green:  { label: "그린",   bg: "#19be50", badge: "#0b42a7", p1bg: "#0b42a7", p1fg: "#ffffff", p2fg: "#0b42a7" },
+    mint:   { label: "민트",   bg: "#00bfa6", badge: "#2b4ed9", p1bg: "#3456de", p1fg: "#ffffff", p2fg: "#3456de" },
+    blue:   { label: "블루",   bg: "#1253d4", badge: "#00bde8", p1bg: "#00bde8", p1fg: "#ffffff", p2fg: "#00bde8" },
+    navy:   { label: "네이비", bg: "#0d347c", badge: "#0bc348", p1bg: "#0bc348", p1fg: "#ffffff", p2fg: "#0bc348" },
+    purple: { label: "퍼플",   bg: "#5b2ec3", badge: "#ee42a9", p1bg: "#ee42a9", p1fg: "#ffffff", p2fg: "#ee42a9" },
+    pink:   { label: "핑크",   bg: "#ea4da3", badge: "#2b4ed9", p1bg: "#2b4ed9", p1fg: "#ffffff", p2fg: "#2b4ed9" },
+    black:  { label: "블랙",   bg: "#1e2028", badge: "#00bde8", p1bg: "#00b4dd", p1fg: "#ffffff", p2fg: "#00b4dd" }
+  };
+  var ORDER = ["red", "yellow", "green", "mint", "blue", "navy", "purple", "pink", "black"];
+
+  var W = 720, H = 960;
+  var CONT_W = 640, GAP = 24, IMG = 500, IMG_R = 24;
+  var TITLE = { size: 52, ls: -2.08, lh: 68, font: "Gmarket Sans" };
+  var NAME  = { size: 48, ls: -1.92, lh: 52, font: "Pretendard" };
+  var PRICE = { size: 40, ls: -1.6, h: 72, pad: [32, 16, 16, 32] };
+  var BADGE = { size: 44, ls: -1.76 };
+  var RIBBON = { x: 64, y: 264, w: 90, padTop: 32, padBottom: 16, lh: 44, r: 8, tailH: 32 };
+  var CIRCLE_B = { x: 56, y: 224, d: 160 };
+  var CIRCLE_C = { x: 504, y: 564, d: 160 };
+  var CIRCLE_LH = 44 * 1.1;
+  /* lebel_typeA / tail — 내보낸 벡터 경로 그대로 */
+  var TAIL = [[0, 0], [90, 0], [90, 32], [44.9648, 5.5], [0, 32]];
+
+  var PRESETS = [
+    { tag: "템플릿 원문", text: "실시간 주문이\n급증한 상품이에요!" },
+    { tag: "🔥 급증", text: "실시간 주문이\n🔥급증한 상품이에요!" },
+    { tag: "😍 구독자", text: "😍구독자들은\n이 상품도 구매했어요" },
+    { tag: "📈 실시간", text: "지금 실시간으로📈\n주문이 급증하고 있어요!" }
+  ];
+
+  var state = {
+    title: "실시간 주문이\n급증한 상품이에요!",
+    name: "어린이과학동아 1년 정기구독",
+    topType: "A",
+    topText: "최저가",
+    cOn: true,
+    cText: "교과/연계",
+    p1: "최저가",
+    p2: "16,800원 ~",
+    theme: "red",
+    img: null
+  };
+  var scale = 2;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $("canvas");
+  var ctx = canvas.getContext("2d");
+
+  /* ---------- 캔버스 헬퍼 ---------- */
+  function setFont(c, spec) {
+    c.font = "700 " + spec.size + "px \"" + spec.font + "\", sans-serif";
+    try { c.letterSpacing = spec.ls + "px"; } catch (e) { /* 미지원 브라우저 */ }
+  }
+  function roundRect(c, x, y, w, h, r) {
+    if (c.roundRect) { c.beginPath(); c.roundRect(x, y, w, h, r); return; }
+    var rr = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + rr, y);
+    c.arcTo(x + w, y, x + w, y + h, rr);
+    c.arcTo(x + w, y + h, x, y + h, rr);
+    c.arcTo(x, y + h, x, y, rr);
+    c.arcTo(x, y, x + w, y, rr);
+    c.closePath();
+  }
+  function wrap(c, text, maxW) {
+    var out = [];
+    String(text == null ? "" : text).split("\n").forEach(function (hard) {
+      if (hard === "") { out.push(""); return; }
+      if (c.measureText(hard).width <= maxW) { out.push(hard); return; }
+      var words = hard.split(" "), line = "";
+      for (var i = 0; i < words.length; i++) {
+        var probe = line ? line + " " + words[i] : words[i];
+        if (c.measureText(probe).width <= maxW || !line) {
+          if (c.measureText(probe).width > maxW && !line) {
+            /* 공백 없는 긴 덩어리는 글자 단위로 자른다 */
+            var chunk = "";
+            var chars = Array.from(words[i]);
+            for (var j = 0; j < chars.length; j++) {
+              if (c.measureText(chunk + chars[j]).width > maxW && chunk) { out.push(chunk); chunk = chars[j]; }
+              else { chunk += chars[j]; }
+            }
+            line = chunk;
+          } else { line = probe; }
+        } else { out.push(line); line = words[i]; }
+      }
+      if (line) out.push(line);
+    });
+    return out.length ? out : [""];
+  }
+  function centerLines(c, lines, cx, firstCenterY, lh) {
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    for (var i = 0; i < lines.length; i++) c.fillText(lines[i], cx, firstCenterY + i * lh);
+  }
+  function shadow(c, dx, dy, blur) {
+    c.shadowColor = "rgba(0,0,0,0.12)";
+    c.shadowOffsetX = dx; c.shadowOffsetY = dy; c.shadowBlur = blur;
+  }
+  function noShadow(c) {
+    c.shadowColor = "transparent";
+    c.shadowOffsetX = 0; c.shadowOffsetY = 0; c.shadowBlur = 0;
+  }
+  /* 원 안쪽에 들어가는 최대 폭 (d 160 기준, 템플릿 실측 83~115) */
+  var CIRCLE_INNER = 132;
+  function circleLines(c, text) {
+    var t = String(text == null ? "" : text).trim();
+    if (!t) return [];
+    if (t.indexOf("/") >= 0) {
+      return t.split("/").map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+    }
+    if (c.measureText(t).width <= CIRCLE_INNER) return [t];
+    var chars = Array.from(t);
+    var half = Math.ceil(chars.length / 2);
+    return [chars.slice(0, half).join(""), chars.slice(half).join("")];
+  }
+
+  /* ---------- 배너 그리기 ---------- */
+  function draw(c, s) {
+    var t = THEMES[state.theme];
+    c.save();
+    c.setTransform(s, 0, 0, s, 0, 0);
+    noShadow(c);
+
+    c.fillStyle = t.bg;
+    c.fillRect(0, 0, W, H);
+
+    /* cont — 세로 중앙 정렬 그룹 (gap 24) */
+    setFont(c, TITLE);
+    var titleLines = wrap(c, state.title, CONT_W);
+    setFont(c, NAME);
+    var nameLines = wrap(c, state.name, CONT_W);
+    var titleH = titleLines.length * TITLE.lh;
+    var nameH = nameLines.length * NAME.lh;
+    var total = titleH + GAP + IMG + GAP + nameH + GAP + PRICE.h;
+    var y = (H - total) / 2;
+
+    /* title */
+    setFont(c, TITLE);
+    c.fillStyle = "#ffffff";
+    centerLines(c, titleLines, W / 2, y + TITLE.lh / 2, TITLE.lh);
+    y += titleH + GAP;
+
+    /* img frame */
+    var ix = (W - IMG) / 2;
+    roundRect(c, ix, y, IMG, IMG, IMG_R);
+    c.fillStyle = "#ffffff";
+    c.fill();
+    if (state.img) {
+      c.save();
+      roundRect(c, ix, y, IMG, IMG, IMG_R);
+      c.clip();
+      var iw = state.img.naturalWidth, ih = state.img.naturalHeight;
+      var k = Math.max(IMG / iw, IMG / ih);
+      var dw = iw * k, dh = ih * k;
+      c.drawImage(state.img, ix + (IMG - dw) / 2, y + (IMG - dh) / 2, dw, dh);
+      c.restore();
+    }
+    y += IMG + GAP;
+
+    /* name */
+    setFont(c, NAME);
+    c.fillStyle = "#ffffff";
+    centerLines(c, nameLines, W / 2, y + NAME.lh / 2, NAME.lh);
+    y += nameH + GAP;
+
+    /* price */
+    setFont(c, PRICE);
+    var m1 = c.measureText(state.p1).width;
+    var m2 = c.measureText(state.p2).width;
+    var w1 = PRICE.pad[0] + m1 + PRICE.pad[1];
+    var w2 = PRICE.pad[2] + m2 + PRICE.pad[3];
+    var pw = w1 + w2;
+    var px0 = (W - pw) / 2;
+    c.save();
+    roundRect(c, px0, y, pw, PRICE.h, PRICE.h / 2);
+    c.clip();
+    c.fillStyle = t.p1bg; c.fillRect(px0, y, w1, PRICE.h);
+    c.fillStyle = "#ffffff"; c.fillRect(px0 + w1, y, w2, PRICE.h);
+    c.restore();
+    c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillStyle = t.p1fg;
+    c.fillText(state.p1, px0 + PRICE.pad[0] + m1 / 2, y + PRICE.h / 2);
+    c.fillStyle = t.p2fg;
+    c.fillText(state.p2, px0 + w1 + PRICE.pad[2] + m2 / 2, y + PRICE.h / 2);
+
+    /* lebel_typeA — 리본 */
+    if (state.topType === "A") {
+      var chars = Array.from(String(state.topText).replace(/\s/g, ""));
+      if (chars.length) {
+        var bh = RIBBON.padTop + chars.length * RIBBON.lh + RIBBON.padBottom;
+        var bx = RIBBON.x, by = RIBBON.y;
+        c.save();
+        shadow(c, 8, 8, 4);
+        c.beginPath();
+        c.moveTo(bx + RIBBON.r, by);
+        c.lineTo(bx + RIBBON.w - RIBBON.r, by);
+        c.quadraticCurveTo(bx + RIBBON.w, by, bx + RIBBON.w, by + RIBBON.r);
+        c.lineTo(bx + RIBBON.w, by + bh);
+        for (var i = 2; i < TAIL.length; i++) c.lineTo(bx + TAIL[i][0], by + bh + TAIL[i][1]);
+        c.lineTo(bx, by + RIBBON.r);
+        c.quadraticCurveTo(bx, by, bx + RIBBON.r, by);
+        c.closePath();
+        c.fillStyle = t.badge;
+        c.fill();
+        c.restore();
+        noShadow(c);
+        setFont(c, { size: BADGE.size, ls: BADGE.ls, font: "Gmarket Sans" });
+        c.fillStyle = "#ffffff";
+        centerLines(c, chars, bx + RIBBON.w / 2, by + RIBBON.padTop + RIBBON.lh / 2, RIBBON.lh);
+      }
+    }
+
+    /* lebel_typeB — 왼쪽 위 원형 */
+    if (state.topType === "B" && String(state.topText).trim()) {
+      setFont(c, { size: BADGE.size, ls: BADGE.ls, font: "Gmarket Sans" });
+      drawCircle(c, CIRCLE_B, t.badge, circleLines(c, state.topText));
+    }
+
+    /* lebel_typeC — 오른쪽 아래 원형 */
+    if (state.cOn && String(state.cText).trim()) {
+      setFont(c, { size: BADGE.size, ls: BADGE.ls, font: "Gmarket Sans" });
+      drawCircle(c, CIRCLE_C, t.badge, circleLines(c, state.cText));
+    }
+
+    c.restore();
+  }
+
+  function drawCircle(c, box, fill, lines) {
+    var r = box.d / 2, cx = box.x + r, cy = box.y + r;
+    c.save();
+    shadow(c, 8, 8, 8);
+    c.beginPath();
+    c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.fillStyle = fill;
+    c.fill();
+    c.restore();
+    noShadow(c);
+    setFont(c, { size: BADGE.size, ls: BADGE.ls, font: "Gmarket Sans" });
+    c.fillStyle = "#ffffff";
+    centerLines(c, lines, cx, cy - (lines.length - 1) * CIRCLE_LH / 2, CIRCLE_LH);
+  }
+
+  /* ---------- 렌더 ---------- */
+  function render() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+    var cssW = canvas.clientWidth || 360;
+    var s = Math.max((cssW * dpr) / W, 1);
+    canvas.width = Math.round(W * s);
+    canvas.height = Math.round(H * s);
+    draw(ctx, s);
+    $("px").textContent = (W * scale).toLocaleString() + " × " + (H * scale).toLocaleString() + " px";
+  }
+
+  /* ---------- 폼 ---------- */
+  function bindText(id, key) {
+    var el = $(id);
+    el.value = state[key];
+    el.addEventListener("input", function () { state[key] = el.value; render(); });
+  }
+  bindText("f-title", "title");
+  bindText("f-name", "name");
+  bindText("f-top", "topText");
+  bindText("f-c", "cText");
+  bindText("f-p1", "p1");
+  bindText("f-p2", "p2");
+
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = p.tag;
+    b.title = p.text.replace("\n", " / ");
+    b.addEventListener("click", function () {
+      state.title = p.text;
+      $("f-title").value = p.text;
+      render();
+    });
+    $("presets").appendChild(b);
+  });
+
+  var TOP_HINT = {
+    A: "한 글자씩 세로로 쌓입니다. 글자 수에 따라 리본 길이가 늘어납니다.",
+    B: "원 안에 들어갑니다. 넘치면 두 줄로 나뉩니다."
+  };
+  function syncTop() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-top]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.top === state.topType));
+    });
+    $("top-text-row").hidden = state.topType === "none";
+    $("top-hint").textContent = TOP_HINT[state.topType] || "";
+    $("f-top").placeholder = state.topType === "B" ? "14%↓" : "최저가";
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-top]"), function (b) {
+    b.addEventListener("click", function () {
+      state.topType = b.dataset.top;
+      syncTop();
+      render();
+    });
+  });
+
+  function syncC() {
+    $("f-c-on").setAttribute("aria-pressed", String(state.cOn));
+    $("c-text-row").hidden = !state.cOn;
+  }
+  $("f-c-on").addEventListener("click", function () {
+    state.cOn = !state.cOn;
+    syncC();
+    render();
+  });
+
+  ORDER.forEach(function (key) {
+    var t = THEMES[key];
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch";
+    b.style.background = t.bg;
+    b.title = t.label + " · 배지 " + t.badge;
+    b.setAttribute("aria-label", t.label);
+    b.dataset.theme = key;
+    var dot = document.createElement("i");
+    dot.style.background = t.badge;
+    b.appendChild(dot);
+    b.addEventListener("click", function () {
+      state.theme = key;
+      syncTheme();
+      render();
+    });
+    $("swatches").appendChild(b);
+  });
+  function syncTheme() {
+    var t = THEMES[state.theme];
+    Array.prototype.forEach.call(document.querySelectorAll(".swatch"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.theme === state.theme));
+    });
+    $("sw-name").textContent = t.label;
+    $("sw-hex").textContent = "배경 " + t.bg + " · 배지 " + t.badge;
+  }
+
+  /* ---------- 이미지 ---------- */
+  function loadImage(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      state.img = img;
+      $("pick").hidden = true;
+      $("thumb").hidden = false;
+      $("thumb-img").src = url;
+      $("thumb-name").textContent = file.name || "붙여넣은 이미지";
+      $("thumb-size").textContent = img.naturalWidth + " × " + img.naturalHeight;
+      render();
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); };
+    img.src = url;
+  }
+  $("pick").addEventListener("click", function () { $("f-img").click(); });
+  $("f-img").addEventListener("change", function () { loadImage(this.files && this.files[0]); });
+  $("thumb-x").addEventListener("click", function () {
+    state.img = null;
+    $("f-img").value = "";
+    $("pick").hidden = false;
+    $("thumb").hidden = true;
+    render();
+  });
+  var stage = $("stage");
+  ["dragenter", "dragover"].forEach(function (ev) {
+    stage.addEventListener(ev, function (e) { e.preventDefault(); stage.classList.add("dragging"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    stage.addEventListener(ev, function (e) { e.preventDefault(); stage.classList.remove("dragging"); });
+  });
+  stage.addEventListener("drop", function (e) {
+    if (e.dataTransfer && e.dataTransfer.files) loadImage(e.dataTransfer.files[0]);
+  });
+  canvas.addEventListener("click", function () { $("f-img").click(); });
+  window.addEventListener("paste", function (e) {
+    var items = e.clipboardData && e.clipboardData.files;
+    if (items && items.length) loadImage(items[0]);
+  });
+
+  /* ---------- 저장 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll("[data-scale]"), function (b) {
+    b.addEventListener("click", function () {
+      scale = Number(b.dataset.scale);
+      Array.prototype.forEach.call(document.querySelectorAll("[data-scale]"), function (o) {
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      $("px").textContent = (W * scale).toLocaleString() + " × " + (H * scale).toLocaleString() + " px";
+    });
+  });
+
+  function stamp() {
+    var d = new Date();
+    return String(d.getFullYear()).slice(2) +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      String(d.getDate()).padStart(2, "0");
+  }
+  function note(msg, isErr) {
+    var el = $("note");
+    el.textContent = msg;
+    el.className = isErr ? "err" : "";
+  }
+  var downloads;
+  var ERRS = {
+    declined: "",
+    rate_limited: "잠시 후 다시 눌러주세요.",
+    too_large: "파일이 너무 큽니다. 배율을 낮춰보세요.",
+    bad_request: "저장 요청이 잘못됐습니다."
+  };
+  $("save").addEventListener("click", async function () {
+    var btn = $("save");
+    btn.disabled = true;
+    note("이미지를 만들고 있어요…");
+    try {
+      var hosted = typeof window.claude !== "undefined" && !!(window.claude && window.claude.use);
+      if (hosted && !downloads) downloads = (await window.claude.use("downloads")) || null;
+      var out = document.createElement("canvas");
+      out.width = W * scale;
+      out.height = H * scale;
+      draw(out.getContext("2d"), scale);
+      var blob = await new Promise(function (r) { out.toBlob(r, "image/png"); });
+      if (!blob) { note("이미지를 만들지 못했어요.", true); return; }
+      var name = "빅인_" + stamp() + "_" + state.theme + ".png";
+      if (downloads) {
+        var res = await downloads.save({ filename: name, data: blob });
+        note(res.status === "saved" ? name + " 저장했어요." : "");
+      } else if (!hosted) {
+        /* 단독 실행(로컬 파일·자체 호스팅)에서는 평범한 내려받기로 */
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+        note(name);
+      } else {
+        note("이 화면에서는 저장을 쓸 수 없어요. 미리보기를 우클릭해 이미지로 저장해 주세요.", true);
+      }
+    } catch (err) {
+      var code = err && err.code;
+      if (code === "declined") note("");
+      else note(ERRS[code] || "저장에 실패했어요. 다시 시도해 주세요.", true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /* ---------- 시작 ---------- */
+  syncTop();
+  syncC();
+  syncTheme();
+  render();
+
+  var faces = [
+    document.fonts.load('700 52px "Gmarket Sans"', "실시간주문급증가최저"),
+    document.fonts.load('700 48px "Pretendard"', "상품명을작성해주세요")
+  ];
+  Promise.all(faces).catch(function () {}).then(render);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+
+  var rt;
+  window.addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(render, 120);
+  });
+</script>
+
+</body>
+</html>

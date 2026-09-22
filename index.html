@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
   /* claude.ai 아티팩트가 자동으로 넣어주는 리셋. 단독 실행용으로 여기 둔다. */
-  :root { color-scheme: light dark; }
+  :root { color-scheme: light; }
   body { margin: 0; }
   img { max-width: 100%; }
   [hidden] { display: none !important; }
@@ -37,7 +37,9 @@
     font-display: block;
   }
 
+  /* 라이트 모드 전용. 보는 사람의 테마가 다크여도 이 페이지는 라이트로 고정한다. */
   :root {
+    color-scheme: light;
     --ground: #eff0f5;
     --surface: #ffffff;
     --sunken: #e6e8f0;
@@ -53,37 +55,6 @@
     --ui: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     --display: "Gmarket Sans", "Pretendard", -apple-system, sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --ground: #101218;
-      --surface: #191c24;
-      --sunken: #0c0e13;
-      --line: #2a2e3a;
-      --line-soft: #23262f;
-      --ink: #e9ebf2;
-      --ink-dim: #969db0;
-      --ink-faint: #6b7283;
-      --accent: #6d86f0;
-      --accent-ink: #0d1020;
-      --accent-soft: #1e2440;
-      --danger: #f07a72;
-    }
-  }
-  :root[data-theme="dark"] {
-    --ground: #101218;
-    --surface: #191c24;
-    --sunken: #0c0e13;
-    --line: #2a2e3a;
-    --line-soft: #23262f;
-    --ink: #e9ebf2;
-    --ink-dim: #969db0;
-    --ink-faint: #6b7283;
-    --accent: #6d86f0;
-    --accent-ink: #0d1020;
-    --accent-soft: #1e2440;
-    --danger: #f07a72;
-  }
-
   * { box-sizing: border-box; }
   body {
     margin: 0;

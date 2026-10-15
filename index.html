@@ -1392,10 +1392,16 @@
     });
   });
 
+  var customInput = null, muteCustom = false;
   function syncTColor() {
     Array.prototype.forEach.call(document.querySelectorAll("[data-tcolor]"), function (b) {
       b.setAttribute("aria-pressed", String(b.dataset.tcolor.toLowerCase() === t.color.toLowerCase()));
     });
+    if (customInput && customInput.value.toLowerCase() !== t.color.toLowerCase()) {
+      muteCustom = true;
+      customInput.value = t.color;
+      muteCustom = false;
+    }
   }
   TCOLORS.forEach(function (hex) {
     var b = document.createElement("button");
@@ -1416,11 +1422,19 @@
     var inp = document.createElement("input");
     inp.type = "color";
     inp.id = "t-custom";
-    inp.value = t.color;
     inp.setAttribute("aria-label", "배지 색 직접 고르기");
-    inp.addEventListener("input", function () { t.color = this.value; syncTColor(); trender(); });
     wrap.appendChild(inp);
     $("t-swatches").appendChild(wrap);
+    /* 값을 먼저 넣고 그 뒤에 리스너를 붙인다. 값 설정만으로 input 이벤트를
+       내보내는 브라우저가 있어서, 색 관리로 보정된 값이 상태를 덮어썼다. */
+    inp.value = t.color;
+    inp.addEventListener("input", function () {
+      if (muteCustom) return;
+      t.color = this.value;
+      syncTColor();
+      trender();
+    });
+    customInput = inp;
   })();
 
   $("t-grad").addEventListener("click", function () {

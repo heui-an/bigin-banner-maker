@@ -1463,7 +1463,12 @@
       this.classList.add("bad");
     }
   });
-  $("t-hex").addEventListener("blur", function () { syncTColor(); });
+  /* 칸을 벗어나면 실제 적용된 색으로 되돌린다 — 입력하다 만 값이 남으면 안 된다.
+     syncTColor 의 "입력 중 보호" 가드가 blur 시점에도 걸리므로 여기서 직접 쓴다. */
+  $("t-hex").addEventListener("blur", function () {
+    this.value = t.color.toUpperCase();
+    this.classList.remove("bad");
+  });
 
   /* 글자색: 자동(대비) 또는 수동 */
   function syncInk() {

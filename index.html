@@ -366,6 +366,22 @@
   }
 
   .subrows { margin-top: 13px; }
+  .hexrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .hexdot {
+    width: 26px; height: 26px; flex: none;
+    border-radius: 7px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+  #t-hex {
+    width: 118px;
+    flex: none;
+    padding: 6px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  #t-hex.bad { border-color: var(--danger); }
   .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .switch .lbl { font-size: 13.5px; color: var(--ink); }
   .track {
@@ -652,7 +668,22 @@
         <div class="row" id="t-color-row">
           <span class="lbl">색상</span>
           <div class="swatches wide" id="t-swatches"></div>
-          <div class="switch" style="margin-top:6px">
+          <div class="hexrow">
+            <span class="hexdot" id="t-hexdot"></span>
+            <input type="text" id="t-hex" spellcheck="false" autocomplete="off" aria-label="배지 색 HEX 값">
+          </div>
+        </div>
+        <div class="row">
+          <span class="lbl">글자색</span>
+          <div class="seg" role="group" aria-label="배지 글자색">
+            <button type="button" data-ink="auto" aria-pressed="true">자동</button>
+            <button type="button" data-ink="#ffffff" aria-pressed="false">흰색</button>
+            <button type="button" data-ink="#111111" aria-pressed="false">검정</button>
+          </div>
+          <p class="hint" id="ink-hint"></p>
+        </div>
+        <div class="row">
+          <div class="switch">
             <span class="lbl" id="lbl-grad">그라데이션</span>
             <button type="button" class="track" id="t-grad" aria-pressed="false" aria-labelledby="lbl-grad"></button>
           </div>
@@ -1209,6 +1240,9 @@
   function inkFor(hex) {
     return luminance(hex) > 0.5 ? "#111111" : "#ffffff";
   }
+  function currentInk() {
+    return t.ink === "auto" ? inkFor(t.color) : t.ink;
+  }
   var SHAPES = { circle: { label: "원형" }, star: { label: "별" } };
   var TCOLORS = ["#4800ff", "#49b2fc", "#fd4516", "#ea4da3", "#19be50", "#ffb414", "#0d347c", "#1e2028"];
 
@@ -1219,6 +1253,7 @@
     shape: "circle",
     text: "파격\n특가",
     color: "#4800ff",
+    ink: "auto",          /* auto | #ffffff | #111111 */
     grad: false
   };
   var tscale = 1;
@@ -1286,7 +1321,7 @@
     }
     setFont(c, { size: size, ls: -size * 0.05, font: "Gmarket Sans" });
     var lh = size * TLEAD;
-    c.fillStyle = inkFor(t.color);
+    c.fillStyle = currentInk();
     centerLines(c, lines, cx, cy - (lines.length - 1) * lh / 2, lh);
   }
 
@@ -1408,7 +1443,50 @@
       customInput.value = t.color;
       muteCustom = false;
     }
+    $("t-hexdot").style.background = t.color;
+    /* 입력 중인 칸을 덮어쓰면 타이핑을 방해한다 */
+    var hex = $("t-hex");
+    if (document.activeElement !== hex) hex.value = t.color.toUpperCase();
+    hex.classList.remove("bad");
+    syncInk();
   }
+
+  /* HEX 직접 입력 — # 있어도 없어도 받는다 */
+  $("t-hex").addEventListener("input", function () {
+    var v = this.value.trim().replace(/^#/, "");
+    if (/^[0-9a-fA-F]{6}$/.test(v)) {
+      this.classList.remove("bad");
+      t.color = "#" + v.toLowerCase();
+      syncTColor();
+      trender();
+    } else {
+      this.classList.add("bad");
+    }
+  });
+  $("t-hex").addEventListener("blur", function () { syncTColor(); });
+
+  /* 글자색: 자동(대비) 또는 수동 */
+  function syncInk() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ink]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.ink === t.ink));
+    });
+    var hint = $("ink-hint");
+    if (t.ink === "auto") {
+      var L = luminance(t.color);
+      hint.textContent = "배지 색 밝기에 따라 자동으로 정합니다. 지금은 " +
+        (inkFor(t.color) === "#111111" ? "검정" : "흰색") +
+        " (밝기 " + L.toFixed(2) + ", 0.50 넘으면 검정).";
+    } else {
+      hint.textContent = "자동 대비를 끄고 고정합니다.";
+    }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-ink]"), function (b) {
+    b.addEventListener("click", function () {
+      t.ink = b.dataset.ink;
+      syncInk();
+      trender();
+    });
+  });
   TCOLORS.forEach(function (hex) {
     var b = document.createElement("button");
     b.type = "button";

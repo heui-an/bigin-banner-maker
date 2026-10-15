@@ -225,7 +225,8 @@
     color: var(--ink-faint);
     font-variant-numeric: tabular-nums;
   }
-  #save {
+  #save,
+  #t-save {
     font-family: var(--display);
     font-weight: 700;
     font-size: 16px;
@@ -238,10 +239,14 @@
     cursor: pointer;
     width: 100%;
   }
-  #save:hover { filter: brightness(1.07); }
-  #save:disabled { opacity: 0.45; cursor: not-allowed; }
-  #note { text-align: center; font-size: 12.5px; min-height: 1.4em; color: var(--ink-dim); }
-  #note.err { color: var(--danger); }
+  #save:hover,
+  #t-save:hover { filter: brightness(1.07); }
+  #save:disabled,
+  #t-save:disabled { opacity: 0.45; cursor: not-allowed; }
+  #note,
+  #t-note { text-align: center; font-size: 12.5px; min-height: 1.4em; color: var(--ink-dim); }
+  #note.err,
+  #t-note.err { color: var(--danger); }
 
   /* ---------- panel ---------- */
   .panel { display: flex; flex-direction: column; gap: 14px; }
@@ -342,7 +347,6 @@
     height: 12px; width: 12px; border-radius: 0;
     clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   }
-  .glyph.medal { border-radius: 50%; height: 11px; box-shadow: 0 4px 0 -1px currentColor; }
 
   .swatches.wide { grid-template-columns: repeat(5, 1fr); }
   .swatches.wide .swatch { border-radius: 8px; }
@@ -604,7 +608,7 @@
         <div class="row" style="margin-top:0">
           <div class="drop" id="t-pick">
             <strong>클릭 · 드래그 · 붙여넣기</strong>
-            900 × 900 영역에 들어갑니다
+            1000 × 1000 영역에 들어갑니다
           </div>
           <div class="thumbrow" id="t-thumb" hidden>
             <img id="t-thumb-img" alt="">
@@ -630,7 +634,6 @@
           <div class="seg" role="group" aria-label="배지 모양">
             <button type="button" data-shape="circle" aria-pressed="true"><span class="glyph circle"></span>원형</button>
             <button type="button" data-shape="star" aria-pressed="false"><span class="glyph star"></span>별</button>
-            <button type="button" data-shape="medal" aria-pressed="false"><span class="glyph medal"></span>메달</button>
           </div>
         </div>
         <div class="row">
@@ -647,7 +650,6 @@
           </div>
           <p class="hint">대각선 광택이 얹힙니다. 시안의 보라색 배지가 이 상태입니다.</p>
         </div>
-        <p class="hint" id="t-medal-note" hidden>메달은 금색 그라데이션이 모양에 포함돼 있어 색상을 바꾸지 않습니다.</p>
       </fieldset>
     </div>
   </div>
@@ -1175,23 +1177,21 @@
   /* ===================== DS스토어 썸네일 =====================
      피그마 실측값: 썸네일 제작도구 템플릿 (7756:2412) */
   var TW = 1000, TH = 1000;
-  var TIMG = { x: 50, y: 20, w: 900, h: 900 };
+  var TIMG = { x: 0, y: 0, w: TW, h: TH };   /* 이미지가 프레임을 꽉 채운다 */
   var BADGE_C = { x: 840, y: 840 };                      /* 원형·별 중심 */
-  var MEDAL = { ribY: 913.95, cx: 856, cy: 828 };        /* 메달: 원 중심이 글자 중심 */
   var TLEAD = 1.15;                                      /* leading normal 실측 (138/2/60 등) */
 
-  var SHAPES = {
-    circle: { label: "원형", size: 60, innerW: 202, ink: "#ffffff", tint: true },
-    star:   { label: "별",   size: 54, innerW: 186, ink: "#ffffff", tint: true },
-    medal:  { label: "메달", size: 42, innerW: 156, ink: "#382114", tint: false }
-  };
+  /* 원형과 별은 글자 기준을 공유한다 — 같은 문구면 두 배지의 글자 크기가 같아야 한다.
+     별의 안쪽 반지름(약 118)이 원(120)과 거의 같아 같은 폭을 써도 넘치지 않는다. */
+  var BADGE_TEXT = { size: 60, innerW: 202, ink: "#ffffff" };
+  var SHAPES = { circle: { label: "원형" }, star: { label: "별" } };
   var TCOLORS = ["#4800ff", "#49b2fc", "#fd4516", "#ea4da3", "#19be50", "#ffb414", "#0d347c", "#1e2028"];
 
   var t = {
     img: null,
     fit: "contain",
     shape: "circle",
-    text: "단 7일\n파격특가",
+    text: "파격\n특가",
     color: "#4800ff",
     grad: true
   };
@@ -1200,12 +1200,7 @@
   /* ---- 도형 에셋 ---- */
   var SVG_TEXT = {};
   var SVG_IMG = {};
-  var ASSETS = {
-    star: "assets/badge-star.svg",
-    medal: "assets/medal-frame.svg",
-    ribbonL: "assets/medal-ribbon-l.svg",
-    ribbonR: "assets/medal-ribbon-r.svg"
-  };
+  var ASSETS = { star: "assets/badge-star.svg" };
 
   function svgImage(key, src) {
     if (SVG_IMG[key]) return SVG_IMG[key];
@@ -1215,7 +1210,7 @@
     SVG_IMG[key] = img;
     return img;
   }
-  /* 파일 그대로 (file:// 에서도 동작) */
+  /* 파일 그대로 — fetch 가 막힌 file:// 에서의 폴백 */
   function plainSvg(key) { return svgImage("file|" + key, ASSETS[key]); }
 
   /* 별은 같은 경로 2개로 되어 있다 — 베이스(#4800FF)와 광택(url(#paint0_linear_0_4)).
@@ -1253,28 +1248,19 @@
     c.globalCompositeOperation = prev;
   }
 
-  function drawRot(c, im, cx, cy, size, deg) {
-    if (!ready(im)) return;
-    c.save();
-    c.translate(cx, cy);
-    c.rotate(deg * Math.PI / 180);
-    c.drawImage(im, -size / 2, -size / 2, size, size);
-    c.restore();
-  }
-
   /* 배지 안에 맞게 글자 크기를 줄여가며 넣는다 */
-  function badgeText(c, lines, sp, cx, cy) {
-    var size = sp.size;
+  function badgeText(c, lines, cx, cy) {
+    var size = BADGE_TEXT.size;
     while (size > 18) {
       setFont(c, { size: size, ls: -size * 0.05, font: "Gmarket Sans" });
       var wmax = 0;
       for (var i = 0; i < lines.length; i++) wmax = Math.max(wmax, c.measureText(lines[i]).width);
-      if (wmax <= sp.innerW) break;
+      if (wmax <= BADGE_TEXT.innerW) break;
       size -= 1;
     }
     setFont(c, { size: size, ls: -size * 0.05, font: "Gmarket Sans" });
     var lh = size * TLEAD;
-    c.fillStyle = sp.ink;
+    c.fillStyle = BADGE_TEXT.ink;
     centerLines(c, lines, cx, cy - (lines.length - 1) * lh / 2, lh);
   }
 
@@ -1285,7 +1271,7 @@
     c.fillStyle = "#ffffff";
     c.fillRect(0, 0, TW, TH);
 
-    /* 이미지 900 × 900 */
+    /* 이미지 — 프레임 전체 */
     if (t.img) {
       var iw = t.img.naturalWidth, ih = t.img.naturalHeight;
       var r = t.fit === "cover"
@@ -1309,7 +1295,6 @@
     }
 
     /* 배지 */
-    var sp = SHAPES[t.shape];
     var lines = String(t.text).split("\n").map(function (x) { return x.trim(); })
       .filter(function (x) { return x !== ""; });
     if (!lines.length) lines = [""];
@@ -1331,17 +1316,11 @@
         sheen(c, BADGE_C.x - 120, BADGE_C.y - 120, 240);
         c.restore();
       }
-      badgeText(c, lines, sp, BADGE_C.x, BADGE_C.y);
-    } else if (t.shape === "star") {
+      badgeText(c, lines, BADGE_C.x, BADGE_C.y);
+    } else {
       var st = starImage();
       if (ready(st)) c.drawImage(st, 704, 712, 272, 272);
-      badgeText(c, lines, sp, BADGE_C.x, BADGE_C.y);
-    } else {
-      drawRot(c, plainSvg("ribbonL"), 812, MEDAL.ribY, 84.198, 25);
-      drawRot(c, plainSvg("ribbonR"), 900, MEDAL.ribY, 84.198, -25);
-      var fr = plainSvg("medal");
-      if (ready(fr)) c.drawImage(fr, 740, 720, 232, 232);
-      badgeText(c, lines, sp, MEDAL.cx, MEDAL.cy);
+      badgeText(c, lines, BADGE_C.x, BADGE_C.y);
     }
 
     c.restore();
@@ -1370,9 +1349,7 @@
       b.setAttribute("aria-pressed", String(b.dataset.fit === t.fit));
     });
     $("t-grad").setAttribute("aria-pressed", String(t.grad));
-    var tintable = SHAPES[t.shape].tint;
-    $("t-color-row").hidden = !tintable;
-    $("t-medal-note").hidden = tintable;
+
   }
   Array.prototype.forEach.call(document.querySelectorAll("[data-shape]"), function (b) {
     b.addEventListener("click", function () {

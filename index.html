@@ -10,7 +10,7 @@
   img { max-width: 100%; }
   [hidden] { display: none !important; }
 </style>
-<title>빅인 배너 생성기</title>
+<title>마케팅 제작도구</title>
 <style>
   @font-face {
     font-family: "Gmarket Sans";
@@ -65,11 +65,68 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
+  .app { display: grid; grid-template-columns: 212px minmax(0, 1fr); }
+  .nav {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    align-self: start;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 24px 14px;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+  }
+  .brand {
+    font-family: var(--display);
+    font-size: 13.5px;
+    letter-spacing: -0.3px;
+    color: var(--ink);
+    padding-inline: 10px;
+    margin-bottom: 14px;
+  }
+  .navitem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 10px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .navitem:hover { background: var(--sunken); color: var(--ink); }
+  .navitem[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+  .navmark { width: 13px; flex: none; border-radius: 2.5px; background: currentColor; opacity: 0.85; }
+  .navmark.r34 { height: 17px; }
+  .navmark.r11 { height: 13px; }
+  .main { min-width: 0; }
   .wrap {
     max-width: 1180px;
     margin: 0 auto;
     padding-inline: 16px;
     padding-block: 28px 56px;
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .nav {
+      flex-direction: row;
+      min-height: 0;
+      gap: 6px;
+      padding: 10px 16px;
+      padding-top: calc(10px + env(safe-area-inset-top, 0px));
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+    .brand { display: none; }
+    .navitem { white-space: nowrap; }
   }
 
   /* ---------- header ---------- */
@@ -125,7 +182,18 @@
     box-shadow: 0 6px 24px rgba(10, 12, 20, 0.16);
     cursor: copy;
   }
-  .stage.dragging #canvas { outline: 3px dashed var(--accent); outline-offset: 5px; }
+  #t-canvas {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: 4px;
+    box-shadow: 0 6px 24px rgba(10, 12, 20, 0.16);
+    cursor: copy;
+  }
+  .stage.dragging #canvas,
+  .stage.dragging #t-canvas { outline: 3px dashed var(--accent); outline-offset: 5px; }
   .stage-foot {
     width: 100%;
     max-width: 360px;
@@ -270,6 +338,28 @@
   .glyph { width: 11px; height: 13px; background: currentColor; flex: none; }
   .glyph.ribbon { clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%); }
   .glyph.circle { border-radius: 50%; height: 11px; }
+  .glyph.star {
+    height: 12px; width: 12px; border-radius: 0;
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+  .glyph.medal { border-radius: 50%; height: 11px; box-shadow: 0 4px 0 -1px currentColor; }
+
+  .swatches.wide { grid-template-columns: repeat(5, 1fr); }
+  .swatches.wide .swatch { border-radius: 8px; }
+  .swatch.custom { position: relative; overflow: hidden; }
+  .swatch.custom input[type="color"] {
+    position: absolute; inset: -6px;
+    width: calc(100% + 12px); height: calc(100% + 12px);
+    border: 0; padding: 0; background: none; cursor: pointer;
+  }
+  .swatch.custom::after {
+    content: "+";
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    font-size: 17px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+  }
 
   .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .switch .lbl { font-size: 13.5px; color: var(--ink); }
@@ -366,7 +456,20 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
+  <nav class="nav" aria-label="제작도구">
+    <div class="brand">마케팅 제작도구</div>
+    <button type="button" class="navitem" data-view="banner" aria-pressed="true">
+      <span class="navmark r34"></span>빅인 배너
+    </button>
+    <button type="button" class="navitem" data-view="thumb" aria-pressed="false">
+      <span class="navmark r11"></span>DS스토어 썸네일
+    </button>
+  </nav>
+
+  <div class="main"><div class="wrap">
+
+  <section class="view" id="view-banner">
   <header>
     <h1>빅인 배너 생성기</h1>
     <p class="sub">피그마 템플릿 <code>빅인 템플릿</code>을 그대로 옮긴 720 × 960 배너. 입력하면 바로 그려지고 PNG로 저장됩니다.</p>
@@ -471,6 +574,86 @@
       </fieldset>
     </div>
   </div>
+  </section>
+
+  <section class="view" id="view-thumb" hidden>
+  <header>
+    <h1>DS스토어 썸네일 생성기</h1>
+    <p class="sub">피그마 <code>썸네일 제작도구 템플릿</code>을 그대로 옮긴 1000 × 1000 썸네일. 이미지를 넣고 배지를 고르면 바로 그려집니다.</p>
+  </header>
+
+  <div class="studio">
+    <div class="stage-col">
+      <div class="stage" id="t-stage">
+        <canvas id="t-canvas" width="1000" height="1000" aria-label="썸네일 미리보기"></canvas>
+        <div class="stage-foot">
+          <div class="sizes" role="group" aria-label="저장 배율">
+            <button type="button" data-tscale="1" aria-pressed="true">1×</button>
+            <button type="button" data-tscale="2" aria-pressed="false">2×</button>
+          </div>
+          <p class="px" id="t-px"></p>
+          <button type="button" id="t-save">PNG로 저장</button>
+          <p id="t-note"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <fieldset>
+        <legend>이미지 <span class="opt">· 필수</span></legend>
+        <div class="row" style="margin-top:0">
+          <div class="drop" id="t-pick">
+            <strong>클릭 · 드래그 · 붙여넣기</strong>
+            900 × 900 영역에 들어갑니다
+          </div>
+          <div class="thumbrow" id="t-thumb" hidden>
+            <img id="t-thumb-img" alt="">
+            <span class="meta"><b id="t-thumb-name"></b><span id="t-thumb-size"></span></span>
+            <button type="button" class="linkbtn" id="t-thumb-x">제거</button>
+          </div>
+          <input type="file" id="t-img" accept="image/*">
+        </div>
+        <div class="row">
+          <span class="lbl">맞춤 방식</span>
+          <div class="seg" role="group" aria-label="이미지 맞춤 방식">
+            <button type="button" data-fit="contain" aria-pressed="true">맞춤</button>
+            <button type="button" data-fit="cover" aria-pressed="false">채움</button>
+          </div>
+          <p class="hint">맞춤은 전체가 다 보이게 넣고, 채움은 영역을 꽉 채우며 넘치는 부분을 자릅니다.</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>배지</legend>
+        <div class="row" style="margin-top:0">
+          <span class="lbl">모양</span>
+          <div class="seg" role="group" aria-label="배지 모양">
+            <button type="button" data-shape="circle" aria-pressed="true"><span class="glyph circle"></span>원형</button>
+            <button type="button" data-shape="star" aria-pressed="false"><span class="glyph star"></span>별</button>
+            <button type="button" data-shape="medal" aria-pressed="false"><span class="glyph medal"></span>메달</button>
+          </div>
+        </div>
+        <div class="row">
+          <label for="t-text">문구</label>
+          <textarea id="t-text" rows="2" placeholder="단 7일&#10;파격특가"></textarea>
+          <p class="hint">줄바꿈은 Enter. 길어지면 배지 안에 맞게 글자 크기가 자동으로 줄어듭니다.</p>
+        </div>
+        <div class="row" id="t-color-row">
+          <span class="lbl">색상</span>
+          <div class="swatches wide" id="t-swatches"></div>
+          <div class="switch" style="margin-top:6px">
+            <span class="lbl" id="lbl-grad">그라데이션</span>
+            <button type="button" class="track" id="t-grad" aria-pressed="false" aria-labelledby="lbl-grad"></button>
+          </div>
+          <p class="hint">대각선 광택이 얹힙니다. 시안의 보라색 배지가 이 상태입니다.</p>
+        </div>
+        <p class="hint" id="t-medal-note" hidden>메달은 금색 그라데이션이 모양에 포함돼 있어 색상을 바꾸지 않습니다.</p>
+      </fieldset>
+    </div>
+  </div>
+  </section>
+
+  </div></div>
 </div>
 
 <script>
@@ -881,7 +1064,8 @@
   canvas.addEventListener("click", function () { $("f-img").click(); });
   window.addEventListener("paste", function (e) {
     var items = e.clipboardData && e.clipboardData.files;
-    if (items && items.length) loadImage(items[0]);
+    if (!items || !items.length) return;
+    if (currentView === "thumb") tloadImage(items[0]); else loadImage(items[0]);
   });
 
   /* ---------- 저장 ---------- */
@@ -913,23 +1097,27 @@
     too_large: "파일이 너무 큽니다. 배율을 낮춰보세요.",
     bad_request: "저장 요청이 잘못됐습니다."
   };
-  $("save").addEventListener("click", async function () {
-    var btn = $("save");
+
+  /* 두 도구가 같은 저장 경로를 쓴다. 뷰마다 크기·렌더러·파일명만 다르다. */
+  async function savePng(opt) {
+    var btn = $(opt.btn);
     btn.disabled = true;
-    note("이미지를 만들고 있어요…");
+    note(opt.note, "이미지를 만들고 있어요…");
     try {
       var hosted = typeof window.claude !== "undefined" && !!(window.claude && window.claude.use);
       if (hosted && !downloads) downloads = (await window.claude.use("downloads")) || null;
+
       var out = document.createElement("canvas");
-      out.width = W * scale;
-      out.height = H * scale;
-      draw(out.getContext("2d"), scale);
+      out.width = opt.w * opt.scale;
+      out.height = opt.h * opt.scale;
+      opt.draw(out.getContext("2d"), opt.scale);
       var blob = await new Promise(function (r) { out.toBlob(r, "image/png"); });
-      if (!blob) { note("이미지를 만들지 못했어요.", true); return; }
-      var name = "빅인_" + stamp() + "_" + state.theme + ".png";
+      if (!blob) { note(opt.note, "이미지를 만들지 못했어요.", true); return; }
+
+      var name = opt.filename();
       if (downloads) {
         var res = await downloads.save({ filename: name, data: blob });
-        note(res.status === "saved" ? name + " 저장했어요." : "");
+        note(opt.note, res.status === "saved" ? name + " 저장했어요." : "");
       } else if (!hosted) {
         /* 단독 실행(로컬 파일·자체 호스팅)에서는 평범한 내려받기로 */
         var url = URL.createObjectURL(blob);
@@ -940,17 +1128,375 @@
         a.click();
         a.remove();
         setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-        note(name);
+        note(opt.note, name);
       } else {
-        note("이 화면에서는 저장을 쓸 수 없어요. 미리보기를 우클릭해 이미지로 저장해 주세요.", true);
+        note(opt.note, "이 화면에서는 저장을 쓸 수 없어요. 미리보기를 우클릭해 이미지로 저장해 주세요.", true);
       }
     } catch (err) {
       var code = err && err.code;
-      if (code === "declined") note("");
-      else note(ERRS[code] || "저장에 실패했어요. 다시 시도해 주세요.", true);
+      if (code === "declined") note(opt.note, "");
+      else note(opt.note, ERRS[code] || "저장에 실패했어요. 다시 시도해 주세요.", true);
     } finally {
       btn.disabled = false;
     }
+  }
+
+  function stamp() {
+    var d = new Date();
+    return String(d.getFullYear()).slice(2) +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      String(d.getDate()).padStart(2, "0");
+  }
+  function note(id, msg, isErr) {
+    var el = $(id);
+    el.textContent = msg;
+    el.className = isErr ? "err" : "";
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-scale]"), function (b) {
+    b.addEventListener("click", function () {
+      scale = Number(b.dataset.scale);
+      Array.prototype.forEach.call(document.querySelectorAll("[data-scale]"), function (o) {
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      $("px").textContent = (W * scale).toLocaleString() + " × " + (H * scale).toLocaleString() + " px";
+    });
+  });
+
+  $("save").addEventListener("click", function () {
+    savePng({
+      btn: "save", note: "note", w: W, h: H, scale: scale,
+      draw: function (c, k) { draw(c, k); },
+      filename: function () { return "빅인_" + stamp() + "_" + state.theme + ".png"; }
+    });
+  });
+
+
+  /* ===================== DS스토어 썸네일 =====================
+     피그마 실측값: 썸네일 제작도구 템플릿 (7756:2412) */
+  var TW = 1000, TH = 1000;
+  var TIMG = { x: 50, y: 20, w: 900, h: 900 };
+  var BADGE_C = { x: 840, y: 840 };                      /* 원형·별 중심 */
+  var MEDAL = { ribY: 913.95, cx: 856, cy: 828 };        /* 메달: 원 중심이 글자 중심 */
+  var TLEAD = 1.15;                                      /* leading normal 실측 (138/2/60 등) */
+
+  var SHAPES = {
+    circle: { label: "원형", size: 60, innerW: 202, ink: "#ffffff", tint: true },
+    star:   { label: "별",   size: 54, innerW: 186, ink: "#ffffff", tint: true },
+    medal:  { label: "메달", size: 42, innerW: 156, ink: "#382114", tint: false }
+  };
+  var TCOLORS = ["#4800ff", "#49b2fc", "#fd4516", "#ea4da3", "#19be50", "#ffb414", "#0d347c", "#1e2028"];
+
+  var t = {
+    img: null,
+    fit: "contain",
+    shape: "circle",
+    text: "단 7일\n파격특가",
+    color: "#4800ff",
+    grad: true
+  };
+  var tscale = 1;
+
+  /* ---- 도형 에셋 ---- */
+  var SVG_TEXT = {};
+  var SVG_IMG = {};
+  var ASSETS = {
+    star: "assets/badge-star.svg",
+    medal: "assets/medal-frame.svg",
+    ribbonL: "assets/medal-ribbon-l.svg",
+    ribbonR: "assets/medal-ribbon-r.svg"
+  };
+
+  function svgImage(key, src) {
+    if (SVG_IMG[key]) return SVG_IMG[key];
+    var img = new Image();
+    img.onload = function () { if (currentView === "thumb") trender(); };
+    img.src = src;
+    SVG_IMG[key] = img;
+    return img;
+  }
+  /* 파일 그대로 (file:// 에서도 동작) */
+  function plainSvg(key) { return svgImage("file|" + key, ASSETS[key]); }
+
+  /* 별은 같은 경로 2개로 되어 있다 — 베이스(#4800FF)와 광택(url(#paint0_linear_0_4)).
+     베이스 fill만 바꾸고, 광택이 꺼지면 그 경로를 뺀다. */
+  function starImage() {
+    var base = SVG_TEXT.star;
+    if (!base) return plainSvg("star");          /* fetch 실패 시 원본 색으로 */
+    var key = "star|" + t.color + "|" + (t.grad ? 1 : 0);
+    if (SVG_IMG[key]) return SVG_IMG[key];
+    var txt = base.replace(/fill="#4800FF"/i, 'fill="' + t.color + '"');
+    if (!t.grad) txt = txt.replace(/<path\b[^>]*fill="url\(#paint0_linear_0_4\)"[^>]*\/>/i, "");
+    return svgImage(key, "data:image/svg+xml;charset=utf-8," + encodeURIComponent(txt));
+  }
+
+  function ready(im) { return im && im.complete && im.naturalWidth > 0; }
+
+  /* 시안의 광택: linear-gradient(141.6deg, …) 를 plus-lighter 로 얹는다 */
+  function sheen(c, x, y, size) {
+    var a = 141.5981772970406 * Math.PI / 180;
+    var dx = Math.sin(a), dy = -Math.cos(a);
+    var L = Math.abs(size * dx) + Math.abs(size * dy);
+    var cx = x + size / 2, cy = y + size / 2;
+    var g = c.createLinearGradient(cx - dx * L / 2, cy - dy * L / 2, cx + dx * L / 2, cy + dy * L / 2);
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(0.1878, "rgba(255,255,255,0)");
+    g.addColorStop(0.35645, "rgba(255,255,255,0.3)");
+    g.addColorStop(0.58223, "rgba(255,255,255,0)");
+    g.addColorStop(0.7536, "rgba(255,255,255,0.3)");
+    g.addColorStop(1, "rgba(255,255,255,0.3)");
+    var prev = c.globalCompositeOperation;
+    c.globalCompositeOperation = "plus-lighter";
+    if (c.globalCompositeOperation !== "plus-lighter") c.globalCompositeOperation = "lighter";
+    c.fillStyle = g;
+    c.fillRect(x, y, size, size);
+    c.globalCompositeOperation = prev;
+  }
+
+  function drawRot(c, im, cx, cy, size, deg) {
+    if (!ready(im)) return;
+    c.save();
+    c.translate(cx, cy);
+    c.rotate(deg * Math.PI / 180);
+    c.drawImage(im, -size / 2, -size / 2, size, size);
+    c.restore();
+  }
+
+  /* 배지 안에 맞게 글자 크기를 줄여가며 넣는다 */
+  function badgeText(c, lines, sp, cx, cy) {
+    var size = sp.size;
+    while (size > 18) {
+      setFont(c, { size: size, ls: -size * 0.05, font: "Gmarket Sans" });
+      var wmax = 0;
+      for (var i = 0; i < lines.length; i++) wmax = Math.max(wmax, c.measureText(lines[i]).width);
+      if (wmax <= sp.innerW) break;
+      size -= 1;
+    }
+    setFont(c, { size: size, ls: -size * 0.05, font: "Gmarket Sans" });
+    var lh = size * TLEAD;
+    c.fillStyle = sp.ink;
+    centerLines(c, lines, cx, cy - (lines.length - 1) * lh / 2, lh);
+  }
+
+  function tdraw(c, k) {
+    c.save();
+    c.setTransform(k, 0, 0, k, 0, 0);
+    noShadow(c);
+    c.fillStyle = "#ffffff";
+    c.fillRect(0, 0, TW, TH);
+
+    /* 이미지 900 × 900 */
+    if (t.img) {
+      var iw = t.img.naturalWidth, ih = t.img.naturalHeight;
+      var r = t.fit === "cover"
+        ? Math.max(TIMG.w / iw, TIMG.h / ih)
+        : Math.min(TIMG.w / iw, TIMG.h / ih);
+      var dw = iw * r, dh = ih * r;
+      c.save();
+      c.beginPath();
+      c.rect(TIMG.x, TIMG.y, TIMG.w, TIMG.h);
+      c.clip();
+      c.drawImage(t.img, TIMG.x + (TIMG.w - dw) / 2, TIMG.y + (TIMG.h - dh) / 2, dw, dh);
+      c.restore();
+    } else {
+      c.fillStyle = "#eef0f4";
+      c.fillRect(TIMG.x, TIMG.y, TIMG.w, TIMG.h);
+      setFont(c, { size: 34, ls: -1, font: "Pretendard" });
+      c.fillStyle = "#a7aebc";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText("이미지를 넣어주세요", TIMG.x + TIMG.w / 2, TIMG.y + TIMG.h / 2);
+    }
+
+    /* 배지 */
+    var sp = SHAPES[t.shape];
+    var lines = String(t.text).split("\n").map(function (x) { return x.trim(); })
+      .filter(function (x) { return x !== ""; });
+    if (!lines.length) lines = [""];
+
+    if (t.shape === "circle") {
+      c.save();
+      shadow(c, 0, 8, 8);
+      c.beginPath();
+      c.arc(BADGE_C.x, BADGE_C.y, 120, 0, Math.PI * 2);
+      c.fillStyle = t.color;
+      c.fill();
+      c.restore();
+      noShadow(c);
+      if (t.grad) {
+        c.save();
+        c.beginPath();
+        c.arc(BADGE_C.x, BADGE_C.y, 120, 0, Math.PI * 2);
+        c.clip();
+        sheen(c, BADGE_C.x - 120, BADGE_C.y - 120, 240);
+        c.restore();
+      }
+      badgeText(c, lines, sp, BADGE_C.x, BADGE_C.y);
+    } else if (t.shape === "star") {
+      var st = starImage();
+      if (ready(st)) c.drawImage(st, 704, 712, 272, 272);
+      badgeText(c, lines, sp, BADGE_C.x, BADGE_C.y);
+    } else {
+      drawRot(c, plainSvg("ribbonL"), 812, MEDAL.ribY, 84.198, 25);
+      drawRot(c, plainSvg("ribbonR"), 900, MEDAL.ribY, 84.198, -25);
+      var fr = plainSvg("medal");
+      if (ready(fr)) c.drawImage(fr, 740, 720, 232, 232);
+      badgeText(c, lines, sp, MEDAL.cx, MEDAL.cy);
+    }
+
+    c.restore();
+  }
+
+  var tcanvas = $("t-canvas"), tctx = tcanvas.getContext("2d");
+  function trender() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+    var cssW = tcanvas.clientWidth || 360;
+    var k = Math.max((cssW * dpr) / TW, 1);
+    tcanvas.width = Math.round(TW * k);
+    tcanvas.height = Math.round(TH * k);
+    tdraw(tctx, k);
+    $("t-px").textContent = (TW * tscale).toLocaleString() + " × " + (TH * tscale).toLocaleString() + " px";
+  }
+
+  /* ---- 썸네일 폼 ---- */
+  $("t-text").value = t.text;
+  $("t-text").addEventListener("input", function () { t.text = this.value; trender(); });
+
+  function syncShape() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-shape]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.shape === t.shape));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-fit]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.fit === t.fit));
+    });
+    $("t-grad").setAttribute("aria-pressed", String(t.grad));
+    var tintable = SHAPES[t.shape].tint;
+    $("t-color-row").hidden = !tintable;
+    $("t-medal-note").hidden = tintable;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-shape]"), function (b) {
+    b.addEventListener("click", function () {
+      t.shape = b.dataset.shape;
+      syncShape();
+      trender();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-fit]"), function (b) {
+    b.addEventListener("click", function () {
+      t.fit = b.dataset.fit;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-fit]"), function (o) {
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      trender();
+    });
+  });
+
+  function syncTColor() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tcolor]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.tcolor.toLowerCase() === t.color.toLowerCase()));
+    });
+  }
+  TCOLORS.forEach(function (hex) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch";
+    b.style.background = hex;
+    b.dataset.tcolor = hex;
+    b.title = hex;
+    b.setAttribute("aria-label", "배지 색 " + hex);
+    b.addEventListener("click", function () { t.color = hex; syncTColor(); trender(); });
+    $("t-swatches").appendChild(b);
+  });
+  (function () {
+    var wrap = document.createElement("span");
+    wrap.className = "swatch custom";
+    wrap.style.background = "linear-gradient(135deg,#ff5f6d,#ffc371,#47d16c,#4facfe,#a06bff)";
+    wrap.title = "직접 고르기";
+    var inp = document.createElement("input");
+    inp.type = "color";
+    inp.id = "t-custom";
+    inp.value = t.color;
+    inp.setAttribute("aria-label", "배지 색 직접 고르기");
+    inp.addEventListener("input", function () { t.color = this.value; syncTColor(); trender(); });
+    wrap.appendChild(inp);
+    $("t-swatches").appendChild(wrap);
+  })();
+
+  $("t-grad").addEventListener("click", function () {
+    t.grad = !t.grad;
+    this.setAttribute("aria-pressed", String(t.grad));
+    trender();
+  });
+
+  function tloadImage(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      t.img = img;
+      $("t-pick").hidden = true;
+      $("t-thumb").hidden = false;
+      $("t-thumb-img").src = url;
+      $("t-thumb-name").textContent = file.name || "붙여넣은 이미지";
+      $("t-thumb-size").textContent = img.naturalWidth + " × " + img.naturalHeight;
+      trender();
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); };
+    img.src = url;
+  }
+  $("t-pick").addEventListener("click", function () { $("t-img").click(); });
+  $("t-canvas").addEventListener("click", function () { $("t-img").click(); });
+  $("t-img").addEventListener("change", function () { tloadImage(this.files && this.files[0]); });
+  $("t-thumb-x").addEventListener("click", function () {
+    t.img = null;
+    $("t-img").value = "";
+    $("t-pick").hidden = false;
+    $("t-thumb").hidden = true;
+    trender();
+  });
+  var tstage = $("t-stage");
+  ["dragenter", "dragover"].forEach(function (ev) {
+    tstage.addEventListener(ev, function (e) { e.preventDefault(); tstage.classList.add("dragging"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    tstage.addEventListener(ev, function (e) { e.preventDefault(); tstage.classList.remove("dragging"); });
+  });
+  tstage.addEventListener("drop", function (e) {
+    if (e.dataTransfer && e.dataTransfer.files) tloadImage(e.dataTransfer.files[0]);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-tscale]"), function (b) {
+    b.addEventListener("click", function () {
+      tscale = Number(b.dataset.tscale);
+      Array.prototype.forEach.call(document.querySelectorAll("[data-tscale]"), function (o) {
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      $("t-px").textContent = (TW * tscale).toLocaleString() + " × " + (TH * tscale).toLocaleString() + " px";
+    });
+  });
+
+  $("t-save").addEventListener("click", function () {
+    savePng({
+      btn: "t-save", note: "t-note", w: TW, h: TH, scale: tscale,
+      draw: function (c, k) { tdraw(c, k); },
+      filename: function () { return "썸네일_" + stamp() + "_" + t.shape + ".png"; }
+    });
+  });
+
+  /* ---- 뷰 전환 ---- */
+  var currentView = "banner";
+  Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (b) {
+    b.addEventListener("click", function () {
+      currentView = b.dataset.view;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (o) {
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      $("view-banner").hidden = currentView !== "banner";
+      $("view-thumb").hidden = currentView !== "thumb";
+      if (currentView === "thumb") trender(); else render();
+      window.scrollTo(0, 0);
+    });
   });
 
   /* ---------- 시작 ---------- */
@@ -958,19 +1504,38 @@
   syncTop();
   syncC();
   syncTheme();
+  syncShape();
+  syncTColor();
   render();
+
+  /* 별 모양은 fill 을 바꿔야 해서 원본 SVG 텍스트가 필요하다.
+     file:// 로 열면 fetch 가 막히는데, 그때는 원본 색 그대로 쓴다. */
+  fetch(ASSETS.star).then(function (r) {
+    if (!r.ok) throw new Error(r.status);
+    return r.text();
+  }).then(function (txt) {
+    SVG_TEXT.star = txt;
+    if (currentView === "thumb") trender();
+  }).catch(function () { /* plainSvg 폴백 */ });
 
   var faces = [
     document.fonts.load('700 52px "Gmarket Sans"', "실시간주문급증가최저"),
     document.fonts.load('700 48px "Pretendard"', "상품명을작성해주세요")
   ];
-  Promise.all(faces).catch(function () {}).then(render);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+  Promise.all(faces).catch(function () {}).then(function () {
+    render();
+    trender();
+  });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { render(); trender(); });
+  }
 
   var rt;
   window.addEventListener("resize", function () {
     clearTimeout(rt);
-    rt = setTimeout(render, 120);
+    rt = setTimeout(function () {
+      if (currentView === "thumb") trender(); else render();
+    }, 120);
   });
 </script>
 
